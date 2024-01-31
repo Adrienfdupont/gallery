@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
-import 'package:gallery/picture.dart';
+import 'package:gallery/data_objects/picture_data.dart';
 
 import 'dart:async';
 import 'dart:convert';
+
+import 'picture.dart';
 
 class Homepage extends StatelessWidget {
   const Homepage({super.key});
@@ -11,10 +13,10 @@ class Homepage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-      future: _fetchPictures(),
+      future: _fetchPictureData(),
       builder: (context, snapshot) {
         if (snapshot.hasData) {
-          final List<Picture> pictures = snapshot.data as List<Picture>;
+          final List<PictureData> pictures = snapshot.requireData;
           return ListView.builder(
             itemCount: pictures.length,
             itemBuilder: (context, index) {
@@ -22,14 +24,14 @@ class Homepage extends StatelessWidget {
             },
           );
         }
-        return const CircularProgressIndicator();
+        return const Center(child: CircularProgressIndicator());
       },
     );
   }
 
-  Future<List<Picture>> _fetchPictures() async {
+  Future<List<PictureData>> _fetchPictureData() async {
     final pictures = await rootBundle.loadString('assets/pictures.json');
     final parsed = (jsonDecode(pictures) as List).cast<Map<String, dynamic>>();
-    return parsed.map<Picture>((json) => Picture.fromJson(json)).toList();
+    return parsed.map<PictureData>((json) => PictureData.fromJson(json)).toList();
   }
 }

@@ -1,18 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:gallery/data_objects/picture_data.dart';
 
 class Picture extends StatelessWidget {
-  final String url;
-
-  const Picture({required this.url});
-
-  factory Picture.fromJson(Map<String, dynamic> json) {
-    return Picture(url: json['urls']['regular']);
-  }
+  final PictureData picture;
+  const Picture({super.key, required this.picture});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      child: Image.network(url),
-    );
+    return Image.network(picture.url);
   }
 }
