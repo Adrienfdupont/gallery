@@ -6,11 +6,38 @@ import 'package:http/http.dart' as http;
 
 import 'dart:async';
 import 'dart:convert';
-
 import 'picture.dart';
 
 class Homepage extends StatelessWidget {
-  const Homepage({super.key});
+  const Homepage({Key? key}) : super(key: key);
+  final controller = ScrollController();
+  int page = 1;
+
+  @override
+  void initState() {
+    controller.addListener(() {
+      if (controller.position.maxScrollExtent == controller.offset) {
+        _fetchPictureData();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+  }
+
+  Future<List<PictureData>> _fetchPictureData() async {
+    final response = await http.get(Uri.parse(
+        "https://api.unsplash.com/photos/?client_id=Va7WM5ToNpyz8-4CWvZ7fkeV8sr_QMf0BH9NAJ8GCbk&page=1&per_page=$page"));
+    if (response.statusCode == 200) {
+      page++;
+      List<dynamic> data = json.decode(response.body);
+      return data.map((json) => PictureData.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load pictures');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,9 +47,14 @@ class Homepage extends StatelessWidget {
         if (snapshot.hasData) {
           final List<PictureData> pictures = snapshot.requireData;
           return ListView.builder(
-            itemCount: pictures.length,
+            controller: controller,
+            itemCount: pictures.length + 1,
             itemBuilder: (context, index) {
-              return Picture(picture: pictures[index]);
+              if (index < pictures.length) {
+                return Picture(picture: pictures[index]);
+              } else {
+                return const Center(child: CircularProgressIndicator());
+              }
             },
           );
         }
@@ -31,16 +63,6 @@ class Homepage extends StatelessWidget {
     );
   }
 
-  Future<List<PictureData>> _fetchPictureData() async {
-    var response = await http.get(Uri.parse("https://api.unsplash.com/photos/?client_id=Va7WM5ToNpyz8-4CWvZ7fkeV8sr_QMf0BH9NAJ8GCbk&page=1&per_page=30"));
-    if (response.statusCode == 200) {
-      final pictures = response.body;
-      final parsed = (jsonDecode(pictures) as List).cast<Map<String, dynamic>>();
-      return parsed.map<PictureData>((json) => PictureData.fromJson(json)).toList();
-    } else {
-      throw Exception('Failed to load pictures');
-    }
 
-  }
+
 }
-
