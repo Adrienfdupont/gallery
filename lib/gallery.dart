@@ -21,6 +21,7 @@ class _GalleryState extends State<Gallery> {
           backgroundColor: const Color(0xff24293d),
           toolbarHeight: 0,
         ),
+        backgroundColor: const Color(0xff24293d),
         body: IndexedStack(
           index: currentPageIndex,
           children: const [
