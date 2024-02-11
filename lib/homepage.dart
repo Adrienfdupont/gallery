@@ -4,8 +4,9 @@ import 'package:gallery/data_objects/picture_data.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
 import 'dart:convert';
-
+import 'favorites_util.dart';
 import 'picture.dart';
+import 'full_screen_image_page.dart';
 
 class Homepage extends StatefulWidget {
   const Homepage({super.key});
@@ -25,7 +26,7 @@ class _HomepageState extends State<Homepage> {
     super.initState();
     _fetchedPictures = _fetchPictureData();
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -74,11 +75,14 @@ class _HomepageState extends State<Homepage> {
                   controller: _textFieldController,
                 ),
               ),
-              IconButton(onPressed: () {
-                setState(() {
-                  _fetchedPictures = _fetchPictureData(_textFieldController.text);
-                });
-              }, icon: const Icon(Icons.search, color: Colors.white))
+              IconButton(
+                  onPressed: () {
+                    setState(() {
+                      _fetchedPictures =
+                          _fetchPictureData(_textFieldController.text);
+                    });
+                  },
+                  icon: const Icon(Icons.search, color: Colors.white))
             ],
           ),
         ),
@@ -87,17 +91,53 @@ class _HomepageState extends State<Homepage> {
             future: _fetchedPictures,
             builder: (context, snapshot) {
               if (snapshot.hasData) {
-                debugPrint("data");
                 final List<PictureData> pictures = snapshot.requireData;
-                return ListView.builder(
+                return GridView.builder(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                  ),
                   itemCount: pictures.length,
                   itemBuilder: (context, index) {
-                    return Picture(picture: pictures[index]);
+                    final picture = pictures[index];
+                    bool isFav = FavoritesUtil.isFavorite(picture.id) ?? false;
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.of(context).push(MaterialPageRoute(
+                          builder: (context) =>
+                              FullScreenImagePage(imageUrl: picture.regularUrl),
+                        ));
+                      },
+                      child: Stack(
+                        children: [
+                          Image.network(picture.regularUrl, fit: BoxFit.cover),
+                          Positioned(
+                            top: 1,
+                            left: 2,
+                            child: IconButton(
+                              icon: Icon(
+                                isFav ? Icons.favorite : Icons.favorite_border,
+                                color: Colors.red,
+                              ),
+                              onPressed: () async {
+                                await FavoritesUtil.setFavorite(
+                                    picture.id, !isFav);
+                                setState(() {
+                                  isFav = !isFav;
+                                });
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
                   },
                 );
-              }
-              if (snapshot.hasError) {
-                return Center(child: Text("${snapshot.error}", style: const TextStyle(color: Colors.white)));
+              } else if (snapshot.hasError) {
+                return Center(
+                    child: Text("${snapshot.error}",
+                        style: const TextStyle(color: Colors.white)));
               }
               return const Center(child: CircularProgressIndicator());
             },
@@ -112,11 +152,11 @@ class _HomepageState extends State<Homepage> {
 
     String url = 'https://api.unsplash.com/photos/?client_id=$apiKey';
     if (query != null) {
-      url = 'https://api.unsplash.com/search/photos?client_id=$apiKey&query=$query';
+      url =
+          'https://api.unsplash.com/search/photos?client_id=$apiKey&query=$query';
     }
 
-    final response = await http.get(Uri.parse(
-        url));
+    final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
       List<dynamic> data;
 
