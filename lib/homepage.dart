@@ -3,8 +3,9 @@ import 'package:gallery/data_objects/picture_data.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
 import 'dart:convert';
-
+import 'favorites_util.dart';
 import 'picture.dart';
+import 'full_screen_image_page.dart';
 
 class Homepage extends StatefulWidget {
   final String title;
@@ -103,15 +104,46 @@ class _HomepageState extends State<Homepage> {
             ),
           ),
           Expanded(
-            child: ListView.builder(
+            child: GridView.builder(
               controller: _scrollController,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+              ),
               itemCount: _pictures.length,
               itemBuilder: (context, index) {
-                if (index < _pictures.length) {
-                  return Picture(picture: _pictures[index]);
-                } else {
-                  return const Center(child: CircularProgressIndicator());
-                }
+                final picture = _pictures[index];
+                bool isFav = FavoritesUtil.isFavorite(picture.id) ?? false;
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).push(MaterialPageRoute(
+                      builder: (context) =>
+                          FullScreenImagePage(imageUrl: picture.regularUrl),
+                    ));
+                  },
+                  child: Stack(
+                    children: [
+                      Image.network(picture.regularUrl, fit: BoxFit.cover),
+                      Positioned(
+                        top: 10,
+                        right: 10,
+                        child: IconButton(
+                          icon: Icon(
+                            isFav ? Icons.favorite : Icons.favorite_border,
+                            color: Colors.red,
+                          ),
+                          onPressed: () async {
+                            await FavoritesUtil.setFavorite(picture.id, !isFav);
+                            setState(() {
+                              isFav = !isFav;
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                );
               },
             ),
           ),
