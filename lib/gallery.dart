@@ -24,7 +24,7 @@ class _GalleryState extends State<Gallery> {
         body: IndexedStack(
           index: currentPageIndex,
           children: const [
-            Homepage(),
+            Homepage(title: "Accueil"),
             Favorites(),
             Artists(),
           ],
