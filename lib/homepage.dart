@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:gallery/data_objects/picture_data.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
@@ -9,52 +8,73 @@ import 'picture.dart';
 import 'full_screen_image_page.dart';
 
 class Homepage extends StatefulWidget {
-  const Homepage({super.key});
 
+  const Homepage({super.key});
+  
   @override
   State<StatefulWidget> createState() => _HomepageState();
 }
 
 class _HomepageState extends State<Homepage> {
+  bool isFetching = false;
   String selectedFilter = 'country';
   final TextEditingController _textFieldController = TextEditingController();
-  // var filters = [{'label': 'Pays', 'value': 'country'}, {'label': 'Photographe', 'value': 'photograph'}];
-  Future<List<PictureData>>? _fetchedPictures;
+  final List<PictureData> _fetchedPictures = [];
+  final controller = ScrollController();
+  int page = 1;
 
   @override
   void initState() {
     super.initState();
-    _fetchedPictures = _fetchPictureData();
+    controller.addListener(() async {
+      if (controller.position.atEdge && controller.position.pixels != 0) {
+        _fetchedPictures.addAll(await _fetchPictureData());
+        setState(() {});
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  Future<List<PictureData>> _fetchPictureData([String? query]) async {
+    String baseUrl = "https://api.unsplash.com/photos/";
+    String clientId = "Va7WM5ToNpyz8-4CWvZ7fkeV8sr_QMf0BH9NAJ8GCbk";
+    String commonParams = "client_id=$clientId&page=$page&per_page=50";
+    
+    String url;
+
+    if (query != null && query.isNotEmpty) {
+      baseUrl = "https://api.unsplash.com/search/photos/";
+      url = "$baseUrl?$commonParams&query=$query";
+    } else {
+      url = "$baseUrl?$commonParams";
+    }
+
+    final response = await http.get(Uri.parse(url));
+    
+    if (response.statusCode == 200) {
+      page++;
+      List<dynamic> data;
+
+      if (query != null && query.isNotEmpty) {
+        data = json.decode(response.body)['results'];
+      } else {
+        data = json.decode(response.body);
+      }
+      return data.map((json) => PictureData.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load pictures');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Row(
-        //   children: [
-        //     DropdownMenu<String>(
-        //       dropdownMenuEntries: filters
-        //           .map((Map<String, String> entry) => DropdownMenuEntry<String>(
-        //                 value: entry['value']!,
-        //                 label: entry['label']!,
-        //               ))
-        //           .toList(),
-        //       initialSelection: selectedFilter,
-        //       onSelected: (String? value) {
-        //         setState(() {
-        //           selectedFilter = value!;
-        //         });
-        //       },
-        //       inputDecorationTheme: const InputDecorationTheme(
-        //         contentPadding: EdgeInsets.symmetric(horizontal: 10),
-        //         border: InputBorder.none,
-        //       ),
-        //       textStyle: const TextStyle(color: Colors.white),
-        //       trailingIcon: const Icon(Icons.arrow_drop_down, color: Colors.white),
-        //     ),
-        //   ],
-        // ),
         Container(
           margin: const EdgeInsets.all(10),
           padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -75,20 +95,42 @@ class _HomepageState extends State<Homepage> {
                   controller: _textFieldController,
                 ),
               ),
-              IconButton(
-                  onPressed: () {
-                    setState(() {
-                      _fetchedPictures =
-                          _fetchPictureData(_textFieldController.text);
-                    });
-                  },
-                  icon: const Icon(Icons.search, color: Colors.white))
+            IconButton(
+              onPressed: () {
+                debugPrint("Search button clicked");
+                // print query
+                print(_textFieldController.text);
+                if (isFetching) {
+                  print("Fetch operation is already in progress.");
+                  return;
+                }
+                print("Starting fetch operation...");
+                setState(() {
+                  page = 1;
+                  _fetchedPictures.clear();
+                  isFetching = true;
+                });
+                _fetchPictureData(_textFieldController.text).then((newPictures) {
+                  setState(() {
+                    _fetchedPictures.addAll(newPictures);
+                    isFetching = false;
+                  });
+                  print("Fetch operation completed.");
+                }).catchError((error) {
+                  setState(() {
+                    isFetching = false;
+                  });
+                  print("Fetch operation failed: $error");
+                });
+              },
+              icon: const Icon(Icons.search, color: Colors.white),
+            )
             ],
           ),
         ),
         Expanded(
           child: FutureBuilder(
-            future: _fetchedPictures,
+            future: _fetchPictureData(),
             builder: (context, snapshot) {
               if (snapshot.hasData) {
                 final List<PictureData> pictures = snapshot.requireData;
@@ -98,6 +140,7 @@ class _HomepageState extends State<Homepage> {
                     crossAxisSpacing: 10,
                     mainAxisSpacing: 10,
                   ),
+                  controller: controller,
                   itemCount: pictures.length,
                   itemBuilder: (context, index) {
                     final picture = pictures[index];
@@ -147,28 +190,4 @@ class _HomepageState extends State<Homepage> {
     );
   }
 
-  Future<List<PictureData>> _fetchPictureData([query]) async {
-    const apiKey = 'Va7WM5ToNpyz8-4CWvZ7fkeV8sr_QMf0BH9NAJ8GCbk';
-
-    String url = 'https://api.unsplash.com/photos/?client_id=$apiKey';
-    if (query != null) {
-      url =
-          'https://api.unsplash.com/search/photos?client_id=$apiKey&query=$query';
-    }
-
-    final response = await http.get(Uri.parse(url));
-    if (response.statusCode == 200) {
-      List<dynamic> data;
-
-      if (query != null) {
-        data = json.decode(response.body)['results'];
-      } else {
-        data = json.decode(response.body);
-      }
-
-      return data.map((json) => PictureData.fromJson(json)).toList();
-    } else {
-      throw Exception('Failed to load pictures');
-    }
-  }
 }
