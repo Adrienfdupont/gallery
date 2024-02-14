@@ -44,7 +44,7 @@ class HomepageState extends State<Homepage> {
 
   Future<List<PictureData>> _fetchPictureData() async {
     final response = await http.get(Uri.parse(
-        "https://api.unsplash.com/photos/?client_id=Va7WM5ToNpyz8-4CWvZ7fkeV8sr_QMf0BH9NAJ8GCbk&page=$page&per_page=30"));
+        "https://api.unsplash.com/photos/?client_id=Va7WM5ToNpyz8-4CWvZ7fkeV8sr_QMf0BH9NAJ8GCbk&page=$page&per_page=50"));
     if (response.statusCode == 200) {
       page++;
       List<dynamic> data = json.decode(response.body);
