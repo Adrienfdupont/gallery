@@ -20,12 +20,24 @@ class _HomepageState extends State<Homepage> {
   final controller = ScrollController();
   int page = 1;
   String? query;
+  String? color = '';
 
-  String selectedFilter = 'country';
   final TextEditingController _textFieldController = TextEditingController();
-  // var filters = [{'label': 'Pays', 'value': 'country'}, {'label': 'Photographe', 'value': 'photograph'}];
+  var filters = [
+    {'label': 'Aucune', 'value': ''},
+    {'label': 'Noir et blanc', 'value': 'black_and_white'},
+    {'label': 'Noir', 'value': 'black'},
+    {'label': 'Blanc', 'value': 'white'},
+    {'label': 'Jaune', 'value': 'yellow'},
+    {'label': 'Orange', 'value': 'orange'},
+    {'label': 'Rouge', 'value': 'red'},
+    {'label': 'Violet', 'value': 'purple'},
+    {'label': 'Magenta', 'value': 'magenta'},
+    {'label': 'Vert', 'value': 'green'},
+    {'label': 'Cyan', 'value': 'teal'},
+    {'label': 'Bleu', 'value': 'blue'},
+  ];
   List<PictureData> _fetchedPictures = [];
-
 
   @override
   void initState() {
@@ -40,28 +52,24 @@ class _HomepageState extends State<Homepage> {
 
   }
 
-
   @override
   void dispose() {
     controller.dispose();
     super.dispose();
   }
 
-
-  // fetch images from the API
   Future<List<PictureData>> _fetchPictureData() async {
-
-    print('fetching page $page, query: $query');
-
     const apiKey = 'Va7WM5ToNpyz8-4CWvZ7fkeV8sr_QMf0BH9NAJ8GCbk';
 
     String url = 'https://api.unsplash.com/photos/?client_id=$apiKey&page=$page&per_page=50';
     if (query != null) {
       url =
       'https://api.unsplash.com/search/photos?client_id=$apiKey&query=$query&page=$page&per_page=50';
-    }
 
-    //print(url);
+      if (color != '') {
+        url += '&color=$color';
+      }
+    }
 
     final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
@@ -76,7 +84,7 @@ class _HomepageState extends State<Homepage> {
 
       return data.map((json) => PictureData.fromJson(json)).toList();
     } else {
-      throw Exception('Failed to load pictures');
+      return [];
     }
   }
 
@@ -84,30 +92,6 @@ class _HomepageState extends State<Homepage> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Row(
-        //   children: [
-        //     DropdownMenu<String>(
-        //       dropdownMenuEntries: filters
-        //           .map((Map<String, String> entry) => DropdownMenuEntry<String>(
-        //                 value: entry['value']!,
-        //                 label: entry['label']!,
-        //               ))
-        //           .toList(),
-        //       initialSelection: selectedFilter,
-        //       onSelected: (String? value) {
-        //         setState(() {
-        //           selectedFilter = value!;
-        //         });
-        //       },
-        //       inputDecorationTheme: const InputDecorationTheme(
-        //         contentPadding: EdgeInsets.symmetric(horizontal: 10),
-        //         border: InputBorder.none,
-        //       ),
-        //       textStyle: const TextStyle(color: Colors.white),
-        //       trailingIcon: const Icon(Icons.arrow_drop_down, color: Colors.white),
-        //     ),
-        //   ],
-        // ),
         Container(
           margin: const EdgeInsets.all(10),
           padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -138,6 +122,48 @@ class _HomepageState extends State<Homepage> {
                   icon: const Icon(Icons.search, color: Colors.white))
             ],
           ),
+        ),
+        Row(
+          children: [
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.only(left: 10),
+                child: const Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    'Couleur dominante :',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              child: DropdownMenu<String>(
+                dropdownMenuEntries: filters
+                    .map((Map<String, String> entry) => DropdownMenuEntry<String>(
+                          value: entry['value']!,
+                          label: entry['label']!,
+                        ))
+                    .toList(),
+                initialSelection: color,
+                onSelected: (String? value) async {
+                  page = 1;
+                  color = value;
+                  _fetchedPictures = await _fetchPictureData();
+                  setState(() {});
+                },
+                inputDecorationTheme: const InputDecorationTheme(
+                  contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                  border: InputBorder.none,
+                ),
+                textStyle: const TextStyle(color: Colors.white),
+                trailingIcon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+              ),
+            )
+          ],
         ),
         Expanded(
           child: FutureBuilder(
