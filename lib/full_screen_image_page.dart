@@ -11,9 +11,12 @@ class FullScreenImagePage extends StatelessWidget {
     return Scaffold(
       body: GestureDetector(
         onTap: () => Navigator.of(context).pop(),
-        child: Center(
-          child: Image.network(imageUrl,
-              fit: BoxFit.cover, height: double.infinity),
+        child: Container(
+          color: Colors.black,
+          child: Center(
+            child: Image.network(imageUrl,
+                fit: BoxFit.contain, height: double.infinity),
+          ),
         ),
       ),
     );
